@@ -1,3 +1,3 @@
-module github.com/nosuk/CodeGenerator
+moduleㅍ
 
 go 1.21.4
