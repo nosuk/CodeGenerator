@@ -33,9 +33,22 @@ func ParseJSONToFields(data interface{}, name string) Field {
 	case []interface{}:
 		if len(v) > 0 {
 			childField := ParseJSONToFields(v[0], name)
+			// 이 때 childField.IsArray에 따라 중첩배열을 판별
+			elemType := childField.Type
+			isNestedArray := childField.IsArray
+
+			if isNestedArray {
+				return Field{
+					Name:      ToExported(name),
+					Type:      "[]" + elemType, // 2차원 배열
+					Children:  childField.Children,
+					IsArray:   true,
+					IsComplex: childField.IsComplex,
+				}
+			}
 			return Field{
 				Name:      ToExported(name),
-				Type:      "List<" + childField.Type + ">",
+				Type:      elemType, // 1차원
 				Children:  childField.Children,
 				IsArray:   true,
 				IsComplex: childField.IsComplex,
@@ -43,7 +56,7 @@ func ParseJSONToFields(data interface{}, name string) Field {
 		} else {
 			return Field{
 				Name:      ToExported(name),
-				Type:      "List<object>",
+				Type:      "interface{}", // unknown type for empty array
 				Children:  nil,
 				IsArray:   true,
 				IsComplex: false,
