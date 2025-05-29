@@ -1,0 +1,42 @@
+{
+    "userId": 12345,
+    "userName": "mcg",
+    "isActive": true,
+    "profile": {
+      "age": 30,
+      "email": "mcg@example.com",
+      "addresses": [
+        {
+          "type": "home",
+          "street": "123 Main St",
+          "city": "Seoul",
+          "postalCode": "04524"
+        },
+        {
+          "type": "work",
+          "street": "456 Office Rd",
+          "city": "Seoul",
+          "postalCode": "04525"
+        }
+      ]
+    },
+    "roles": ["admin", "developer"],
+    "preferences": {
+      "notifications": {
+        "email": true,
+        "sms": false
+      },
+      "themes": ["dark", "compact"]
+    },
+    "loginHistory": [
+      {
+        "loginDate": "2025-05-20T15:30:00Z",
+        "ipAddress": "192.168.1.100"
+      },
+      {
+        "loginDate": "2025-05-21T08:15:00Z",
+        "ipAddress": "192.168.1.101"
+      }
+    ]
+  }
+  
