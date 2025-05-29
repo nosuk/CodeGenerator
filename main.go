@@ -51,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	langs := []string{"csharp", "go", "python"}
+	langs := []string{"csharp", "go", "python", "java"}
 
 	if *lang == "" {
 		for _, l := range langs {
@@ -76,7 +76,7 @@ const (
 func generateCodeForLang(lang string, field models.Field, rootClassName, dirName, baseName string) {
 	var code string
 	var ext string
-	kinds := []generator.OutputKind{generator.OutputJSON, generator.OutputXML} // 항상 둘 다 지원
+	kinds := []generator.OutputKind{generator.OutputJSON, generator.OutputXML} // 필요시
 
 	switch lang {
 	case "csharp":
@@ -88,6 +88,9 @@ func generateCodeForLang(lang string, field models.Field, rootClassName, dirName
 	case "python":
 		code = generator.GeneratePythonCode(field, rootClassName, kinds...)
 		ext = ".py"
+	case "java":
+		code = generator.GenerateJavaCode(field, rootClassName, kinds...)
+		ext = ".java"
 	default:
 		fmt.Printf("⚠️ 지원하지 않는 언어: %s\n", lang)
 		return

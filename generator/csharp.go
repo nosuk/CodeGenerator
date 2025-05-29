@@ -7,13 +7,6 @@ import (
 	"github.com/nosuk/CodeGenerator/models"
 )
 
-func toCamelCase(s string) string {
-	if s == "" {
-		return ""
-	}
-	return strings.ToLower(s[:1]) + s[1:]
-}
-
 // C# 타입 변환 (배열은 List<>)
 func csharpType(field models.Field) string {
 	if field.IsArray {
@@ -23,13 +16,6 @@ func csharpType(field models.Field) string {
 }
 
 // 배열 타입에서 아이템명 추출 (ex: List<Role> → Role)
-func arrayItemType(field models.Field) string {
-	t := csharpType(field)
-	if strings.HasPrefix(t, "List<") && strings.HasSuffix(t, ">") {
-		return t[5 : len(t)-1]
-	}
-	return t
-}
 
 // C# 4.7.2 스타일 코드 생성기 (JSON/XML 동시 지원, 배열/단일 어트리뷰트 자동 분기)
 func GenerateCSharpCode(field models.Field, rootClassName string, outputKinds ...OutputKind) string {

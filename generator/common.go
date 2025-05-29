@@ -1,5 +1,11 @@
 package generator
 
+import (
+	"strings"
+
+	"github.com/nosuk/CodeGenerator/models"
+)
+
 type OutputKind string
 
 const (
@@ -18,4 +24,19 @@ func HasKind(kinds []OutputKind, kind OutputKind) bool {
 		}
 	}
 	return false
+}
+
+func toCamelCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+func arrayItemType(field models.Field) string {
+	t := csharpType(field)
+	if strings.HasPrefix(t, "List<") && strings.HasSuffix(t, ">") {
+		return t[5 : len(t)-1]
+	}
+	return t
 }
