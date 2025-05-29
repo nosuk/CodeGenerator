@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Company name="AcmeCorp" founded="1998">
+  <Departments>
+    <Department id="101" name="Engineering">
+      <Manager>
+        <Name>Jane Doe</Name>
+        <EmployeeID>1001</EmployeeID>
+      </Manager>
+      <Employees>
+        <Employee>
+          <Name>John Smith</Name>
+          <Title>Senior Engineer</Title>
+          <Skills>
+            <Skill>Go</Skill>
+            <Skill>Python</Skill>
+            <Skill>C++</Skill>
+          </Skills>
+        </Employee>
+        <Employee>
+          <Name>Alice Johnson</Name>
+          <Title>Junior Engineer</Title>
+          <Skills>
+            <Skill>JavaScript</Skill>
+            <Skill>HTML</Skill>
+          </Skills>
+        </Employee>
+      </Employees>
+    </Department>
+    <Department id="102" name="HR">
+      <Manager>
+        <Name>Robert Brown</Name>
+        <EmployeeID>1002</EmployeeID>
+      </Manager>
+      <Employees>
+        <Employee>
+          <Name>Emily Davis</Name>
+          <Title>HR Specialist</Title>
+        </Employee>
+      </Employees>
+    </Department>
+  </Departments>
+  <Locations>
+    <Location type="Headquarters">
+      <City>New York</City>
+      <Address>123 Main St</Address>
+    </Location>
+    <Location type="Remote">
+      <City>San Francisco</City>
+      <Address>456 Market St</Address>
+    </Location>
+  </Locations>
+</Company>

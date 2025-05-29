@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/xml"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ type Field struct {
 	IsComplex bool
 }
 
-// JSON 데이터를 Field 트리로 변환 (재귀)
+// JSON → Field 트리 (재귀)
 func ParseJSONToFields(data interface{}, name string) Field {
 	switch v := data.(type) {
 	case map[string]interface{}:
@@ -59,7 +60,18 @@ func ParseJSONToFields(data interface{}, name string) Field {
 	}
 }
 
-// 필드명 대문자(Exported)로 변환
+// XML → Field 트리 (간단 샘플)
+// 실제로는 xml.Decoder로 Element별 재귀 파싱/배열/속성 처리 추가 필요
+func ParseXMLToFields(data []byte, name string) Field {
+	var m map[string]interface{}
+	if err := xml.Unmarshal(data, (*map[string]interface{})(&m)); err == nil && len(m) > 0 {
+		return ParseJSONToFields(m, name)
+	}
+	// 실제 구현은 xml.Decoder로 태그 구조 → map 변환 로직 필요
+	return Field{Name: ToExported(name), Type: "object"}
+}
+
+// 첫글자 대문자 (Go/C#/Python 네이밍)
 func ToExported(name string) string {
 	if name == "" {
 		return ""

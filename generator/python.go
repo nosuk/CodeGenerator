@@ -7,29 +7,38 @@ import (
 	"github.com/nosuk/CodeGenerator/models"
 )
 
-// Python 코드 생성 함수
-func GeneratePythonCode(field models.Field, rootName string) string {
+// Python 코드 생성기 - JSON, XML 지원
+func GeneratePythonCode(field models.Field, rootName string, outputKinds ...OutputKind) string {
 	var sb strings.Builder
 
 	// import문
-	sb.WriteString("import json\n\n")
+	sb.WriteString("import json\n")
+	sb.WriteString("import xml.etree.ElementTree as ET\n\n")
 
 	// 클래스 정의 (하위 클래스부터)
 	writePythonClasses(field, rootName, &sb)
 
-	// 파일 입출력 및 직렬화/역직렬화 함수 (루트만)
-	sb.WriteString(fmt.Sprintf("def load_%s_from_file(path):\n", to_snake_case(rootName)))
-	sb.WriteString(fmt.Sprintf("    with open(path, 'r', encoding='utf-8') as f:\n        data = json.load(f)\n    return %s.from_dict(data)\n\n", rootName))
+	// JSON 함수
+	if HasKind(outputKinds, OutputJSON) {
+		sb.WriteString(fmt.Sprintf("def load_%s_from_json_file(path):\n", to_snake_case(rootName)))
+		sb.WriteString(fmt.Sprintf("    with open(path, 'r', encoding='utf-8') as f:\n        data = json.load(f)\n    return %s.from_dict(data)\n\n", rootName))
+		sb.WriteString(fmt.Sprintf("def save_%s_to_json_file(path, obj):\n", to_snake_case(rootName)))
+		sb.WriteString("    with open(path, 'w', encoding='utf-8') as f:\n        json.dump(obj.to_dict(), f, ensure_ascii=False, indent=2)\n\n")
+	}
 
-	sb.WriteString(fmt.Sprintf("def save_%s_to_file(path, obj):\n", to_snake_case(rootName)))
-	sb.WriteString("    with open(path, 'w', encoding='utf-8') as f:\n        json.dump(obj.to_dict(), f, ensure_ascii=False, indent=2)\n\n")
-
-	sb.WriteString(fmt.Sprintf("def marshal_%s(obj):\n    return json.dumps(obj.to_dict(), ensure_ascii=False)\n\n", to_snake_case(rootName)))
-	sb.WriteString(fmt.Sprintf("def unmarshal_%s(json_str):\n    data = json.loads(json_str)\n    return %s.from_dict(data)\n\n", to_snake_case(rootName), rootName))
+	// XML 함수(간단 버전: xml.etree.ElementTree 이용)
+	if HasKind(outputKinds, OutputXML) {
+		sb.WriteString(fmt.Sprintf("# XML 지원은 기본 dict 변환을 가정한 예시, 실전용 구현은 확장 필요\n"))
+		sb.WriteString(fmt.Sprintf("def load_%s_from_xml_file(path):\n", to_snake_case(rootName)))
+		sb.WriteString("    tree = ET.parse(path)\n    root = tree.getroot()\n    # TODO: ElementTree → dict → 클래스 변환 구현 필요\n\n")
+		sb.WriteString(fmt.Sprintf("def save_%s_to_xml_file(path, obj):\n", to_snake_case(rootName)))
+		sb.WriteString("    # TODO: 클래스 → dict → ElementTree 변환 구현 필요\n    pass\n\n")
+	}
 
 	return sb.String()
 }
 
+// ... 이하 writePythonClasses, to_snake_case, HasKind 함수는 동일
 func writePythonClasses(field models.Field, rootName string, sb *strings.Builder) {
 	for _, child := range field.Children {
 		if child.IsComplex {
@@ -44,9 +53,7 @@ func writePythonClasses(field models.Field, rootName string, sb *strings.Builder
 	}
 }
 
-// 클래스 본체
 func writePythonClass(field models.Field, sb *strings.Builder) {
-	// __init__
 	sb.WriteString(fmt.Sprintf("class %s:\n", field.Name))
 	sb.WriteString("    def __init__(self")
 	for _, c := range field.Children {
@@ -58,13 +65,11 @@ func writePythonClass(field models.Field, sb *strings.Builder) {
 	}
 	sb.WriteString("\n")
 
-	// from_dict
 	sb.WriteString("    @staticmethod\n")
 	sb.WriteString("    def from_dict(obj):\n")
 	sb.WriteString("        if obj is None: return None\n")
 	sb.WriteString(fmt.Sprintf("        return %s(\n", field.Name))
 	for i, c := range field.Children {
-		// 중첩 구조는 재귀 호출
 		if c.IsComplex {
 			if c.IsArray {
 				sb.WriteString(fmt.Sprintf("            %s=[%s.from_dict(x) for x in obj.get('%s', [])]%s\n", to_snake_case(c.Name), c.Name, c.Name, if_comma(i, field.Children)))
@@ -77,7 +82,6 @@ func writePythonClass(field models.Field, sb *strings.Builder) {
 	}
 	sb.WriteString("        )\n\n")
 
-	// to_dict
 	sb.WriteString("    def to_dict(self):\n")
 	sb.WriteString("        result = {}\n")
 	for _, c := range field.Children {
@@ -92,7 +96,6 @@ func writePythonClass(field models.Field, sb *strings.Builder) {
 	sb.WriteString("        return result\n\n")
 }
 
-// snake_case 변환
 func to_snake_case(s string) string {
 	var out []rune
 	for i, r := range s {
@@ -104,7 +107,6 @@ func to_snake_case(s string) string {
 	return strings.ToLower(string(out))
 }
 
-// 마지막에 콤마 찍을지 여부
 func if_comma(i int, l []models.Field) string {
 	if i != len(l)-1 {
 		return ","

@@ -7,34 +7,50 @@ import (
 	"github.com/nosuk/CodeGenerator/models"
 )
 
-// Go 코드 생성 함수
-func GenerateGoCode(field models.Field, rootName string) string {
-	var sb strings.Builder
+// Go 타입 변환: 배열이면 []타입, 아니면 타입명
+func goType(field models.Field) string {
+	if field.IsArray {
+		return "[]" + field.Type
+	}
+	return field.Type
+}
 
-	// 패키지명
+// Go 코드 생성기 (JSON/XML 동시 지원)
+func GenerateGoCode(field models.Field, rootName string, outputKinds ...OutputKind) string {
+	var sb strings.Builder
 	sb.WriteString("package main\n\n")
-	sb.WriteString("import (\n\t\"encoding/json\"\n\t\"os\"\n\t\"io/ioutil\"\n)\n\n")
+	sb.WriteString("import (\n\t\"encoding/json\"\n\t\"encoding/xml\"\n\t\"os\"\n\t\"io/ioutil\"\n)\n\n")
 
 	// struct 정의 (하위 struct 먼저)
 	writeGoStructs(field, rootName, &sb)
 
-	// 파일 입출력 + Marshal/Unmarshal 함수(루트 struct에만)
-	sb.WriteString(fmt.Sprintf("// 파일에서 읽어서 구조체로 파싱\nfunc Load%sFromFile(path string) (%s, error) {\n", rootName, rootName))
-	sb.WriteString(fmt.Sprintf("    var v %s\n", rootName))
-	sb.WriteString("    data, err := ioutil.ReadFile(path)\n    if err != nil {\n        return v, err\n    }\n")
-	sb.WriteString("    err = json.Unmarshal(data, &v)\n    return v, err\n}\n\n")
+	// JSON 입출력
+	if HasKind(outputKinds, OutputJSON) {
+		sb.WriteString(fmt.Sprintf("// 파일에서 JSON 읽기\nfunc Load%sFromJSONFile(path string) (%s, error) {\n", rootName, rootName))
+		sb.WriteString(fmt.Sprintf("    var v %s\n", rootName))
+		sb.WriteString("    data, err := ioutil.ReadFile(path)\n    if err != nil { return v, err }\n")
+		sb.WriteString("    err = json.Unmarshal(data, &v)\n    return v, err\n}\n\n")
 
-	sb.WriteString(fmt.Sprintf("// 구조체를 파일로 저장\nfunc Save%sToFile(path string, v %s) error {\n", rootName, rootName))
-	sb.WriteString("    data, err := json.MarshalIndent(v, \"\", \"  \")\n    if err != nil {\n        return err\n    }\n")
-	sb.WriteString("    return ioutil.WriteFile(path, data, 0644)\n}\n\n")
+		sb.WriteString(fmt.Sprintf("// JSON 파일로 저장\nfunc Save%sToJSONFile(path string, v %s) error {\n", rootName, rootName))
+		sb.WriteString("    data, err := json.MarshalIndent(v, \"\", \"  \")\n    if err != nil { return err }\n")
+		sb.WriteString("    return ioutil.WriteFile(path, data, 0644)\n}\n\n")
+	}
 
-	sb.WriteString(fmt.Sprintf("// Marshal 구조체→[]byte\nfunc Marshal%s(v %s) ([]byte, error) {\n    return json.Marshal(v)\n}\n\n", rootName, rootName))
-	sb.WriteString(fmt.Sprintf("// Unmarshal []byte→구조체\nfunc Unmarshal%s(data []byte) (%s, error) {\n", rootName, rootName))
-	sb.WriteString(fmt.Sprintf("    var v %s\n", rootName))
-	sb.WriteString("    err := json.Unmarshal(data, &v)\n    return v, err\n}\n\n")
+	// XML 입출력
+	if HasKind(outputKinds, OutputXML) {
+		sb.WriteString(fmt.Sprintf("// 파일에서 XML 읽기\nfunc Load%sFromXMLFile(path string) (%s, error) {\n", rootName, rootName))
+		sb.WriteString(fmt.Sprintf("    var v %s\n", rootName))
+		sb.WriteString("    data, err := ioutil.ReadFile(path)\n    if err != nil { return v, err }\n")
+		sb.WriteString("    err = xml.Unmarshal(data, &v)\n    return v, err\n}\n\n")
+
+		sb.WriteString(fmt.Sprintf("// XML 파일로 저장\nfunc Save%sToXMLFile(path string, v %s) error {\n", rootName, rootName))
+		sb.WriteString("    data, err := xml.MarshalIndent(v, \"\", \"  \")\n    if err != nil { return err }\n")
+		sb.WriteString("    return ioutil.WriteFile(path, data, 0644)\n}\n\n")
+	}
 	return sb.String()
 }
 
+// 하위 struct(루트 제외) 재귀 생성
 func writeGoStructs(field models.Field, rootName string, sb *strings.Builder) {
 	for _, child := range field.Children {
 		if child.IsComplex {
@@ -42,7 +58,7 @@ func writeGoStructs(field models.Field, rootName string, sb *strings.Builder) {
 			if child.Name != rootName {
 				sb.WriteString(fmt.Sprintf("type %s struct {\n", child.Name))
 				for _, gc := range child.Children {
-					sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\"`\n", gc.Name, gc.Type, gc.Name))
+					sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" xml:\"%s\"`\n", gc.Name, goType(gc), gc.Name, gc.Name))
 				}
 				sb.WriteString("}\n\n")
 			}
@@ -52,8 +68,10 @@ func writeGoStructs(field models.Field, rootName string, sb *strings.Builder) {
 	if field.Name == rootName {
 		sb.WriteString(fmt.Sprintf("type %s struct {\n", field.Name))
 		for _, child := range field.Children {
-			sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\"`\n", child.Name, child.Type, child.Name))
+			sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" xml:\"%s\"`\n", child.Name, goType(child), child.Name, child.Name))
 		}
 		sb.WriteString("}\n\n")
 	}
 }
+
+// OutputKind 체크는 generator/common.go에서 제공 (import해서 사용)
